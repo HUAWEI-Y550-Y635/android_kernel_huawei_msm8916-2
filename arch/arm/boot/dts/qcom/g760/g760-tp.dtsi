@@ -58,7 +58,7 @@
 
 			/* SYNAPTICS_WAKE_UP_GESTURE_FLAG:'1'->enabled,'0'->disabled */
 			/*IC flash is not enough for holster,so fw del one gesture*/
-			synaptics,gesture_enabled = <0>;
+			synaptics,gesture_enabled = <1>;
 			/* Gestures that supported:                           */
 			/* bit0  Double tap                                        */
 			/* bit1  Single finger slide from left to right     */
@@ -98,7 +98,7 @@
 			huawei,dtz_y1 = <1068>;
 
 			/* SYNAPTICS_GLOVE_FUNCTION_FLAG:'1'->enabled,'0'->disabled*/
-			synaptics,glove_enabled = <0>;
+			synaptics,glove_enabled = <1>;
 			/*After reduce power-consumption by exit reduce mode,*/
 			/*we have to reduce f-r rate to make sure gesture work fine*/
 			synaptics,fast_relax_gesture = <7>;

@@ -20,6 +20,7 @@
 #include "g760-audio.dtsi"
 #include "../dsi-panel-innolux-720p-video.dtsi"
 #include "g760-sdcard.dtsi"
+#include "g760-usb.dtsi"
 
 &tlmm_pinmux {
 
