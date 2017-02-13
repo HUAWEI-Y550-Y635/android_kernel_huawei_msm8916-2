@@ -51,9 +51,17 @@ struct smd_port_info smd_pi[SMD_N_PORTS] = {
 	{
 		.name = "DS",
 	},
+	/* used DATA2 smd channel to support at command in pcui port */
+#ifndef CONFIG_HUAWEI_USB
 	{
-		.name = "UNUSED",
+        .name = "UNUSED",
 	},
+#else
+	{
+        .name = "DATA2",
+	},
+#endif
+
 };
 
 struct gsmd_port {
@@ -483,10 +491,21 @@ static unsigned int convert_acm_sigs_to_uart(unsigned acm_sig)
 	/* should this needs to be in calling functions ??? */
 	acm_sig &= (SMD_ACM_CTRL_DTR | SMD_ACM_CTRL_RTS);
 
+    /* set RTS signal forcedly enven if there is no RTS or DTR
+     * If the host does not set RTS signal,
+     * Modem will not write data to share memory.
+     */
+#ifdef CONFIG_HUAWEI_USB
+	if (acm_sig & SMD_ACM_CTRL_DTR)
+		uart_sig |= TIOCM_DTR;
+
+	uart_sig |= TIOCM_RTS;
+#else
 	if (acm_sig & SMD_ACM_CTRL_DTR)
 		uart_sig |= TIOCM_DTR;
 	if (acm_sig & SMD_ACM_CTRL_RTS)
 		uart_sig |= TIOCM_RTS;
+#endif		
 
 	return uart_sig;
 }
@@ -681,8 +700,8 @@ int gsmd_connect(struct gserial *gser, u8 portno)
 
 	ret = usb_ep_enable(gser->in);
 	if (ret) {
-		pr_err("%s: usb_ep_enable failed eptype:IN ep:%p, err:%d",
-				__func__, gser->in, ret);
+		pr_err("%s: usb_ep_enable failed eptype:IN ep:%p",
+				__func__, gser->in);
 		port->port_usb = 0;
 		return ret;
 	}
@@ -690,8 +709,8 @@ int gsmd_connect(struct gserial *gser, u8 portno)
 
 	ret = usb_ep_enable(gser->out);
 	if (ret) {
-		pr_err("%s: usb_ep_enable failed eptype:OUT ep:%p, err: %d",
-				__func__, gser->out, ret);
+		pr_err("%s: usb_ep_enable failed eptype:OUT ep:%p",
+				__func__, gser->out);
 		port->port_usb = 0;
 		gser->in->driver_data = 0;
 		return ret;
@@ -746,8 +765,6 @@ void gsmd_disconnect(struct gserial *gser, u8 portno)
 				port->cbits_to_modem,
 				~port->cbits_to_modem);
 	}
-
-	gser->notify_modem = NULL;
 
 	if (port->pi->ch)
 		queue_work(gsmd_wq, &port->disconnect_work);
@@ -996,20 +1013,3 @@ void gsmd_cleanup(struct usb_gadget *g, unsigned count)
 {
 	/* TBD */
 }
-
-int gsmd_write(u8 portno, char *buf, unsigned int size)
-{
-	int count, avail;
-	struct gsmd_port const *port = smd_ports[portno].port;
-
-	if (portno > SMD_N_PORTS)
-		return -EINVAL;
-
-	avail = smd_write_avail(port->pi->ch);
-	if (avail < size)
-		return -EAGAIN;
-
-	count = smd_write(port->pi->ch, buf, size);
-	return count;
-}
-

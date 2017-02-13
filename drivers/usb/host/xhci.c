@@ -101,8 +101,6 @@ void xhci_quiesce(struct xhci_hcd *xhci)
 int xhci_halt(struct xhci_hcd *xhci)
 {
 	int ret;
-	struct usb_hcd *hcd = xhci_to_hcd(xhci);
-
 	xhci_dbg(xhci, "// Halt the HC\n");
 	xhci_quiesce(xhci);
 
@@ -111,14 +109,9 @@ int xhci_halt(struct xhci_hcd *xhci)
 	if (!ret) {
 		xhci->xhc_state |= XHCI_STATE_HALTED;
 		xhci->cmd_ring_state = CMD_RING_STATE_STOPPED;
-	} else {
+	} else
 		xhci_warn(xhci, "Host not halted after %u microseconds.\n",
 				XHCI_MAX_HALT_USEC);
-
-		if (hcd->driver->halt_failed_cleanup)
-			hcd->driver->halt_failed_cleanup(hcd);
-	}
-
 	return ret;
 }
 
@@ -918,8 +911,6 @@ int xhci_suspend(struct xhci_hcd *xhci)
 	xhci_dbg(xhci, "%s: stopping port polling.\n", __func__);
 	clear_bit(HCD_FLAG_POLL_RH, &hcd->flags);
 	del_timer_sync(&hcd->rh_timer);
-	clear_bit(HCD_FLAG_POLL_RH, &xhci->shared_hcd->flags);
-	del_timer_sync(&xhci->shared_hcd->rh_timer);
 
 	spin_lock_irq(&xhci->lock);
 	clear_bit(HCD_FLAG_HW_ACCESSIBLE, &hcd->flags);
@@ -1125,8 +1116,6 @@ int xhci_resume(struct xhci_hcd *xhci, bool hibernated)
 	xhci_dbg(xhci, "%s: starting port polling.\n", __func__);
 	set_bit(HCD_FLAG_POLL_RH, &hcd->flags);
 	usb_hcd_poll_rh_status(hcd);
-	set_bit(HCD_FLAG_POLL_RH, &xhci->shared_hcd->flags);
-	usb_hcd_poll_rh_status(xhci->shared_hcd);
 
 	return retval;
 }
